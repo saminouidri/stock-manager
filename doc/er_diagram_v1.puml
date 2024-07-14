@@ -1,0 +1,154 @@
+@startuml ER
+
+skinparam linetype ortho
+
+note as note1
+    <b>Fonctionnement de Firebase
+    Plusieurs types de bases de données sont disponibles sur Firebase, notamment Authentication, Firestore ou Realtime
+    
+    La base de données de type Authentication est utilisée pour représenter des utilisateurs et facilite l'inscription 
+    et la connexion des utilisateurs, la suppression de comptes, la vérification d'adresse email, etc.
+    La base de données Firestore est une base de données NoSQL qui permet de stocker tout type de données
+    La base de données Realtime est une base de données SQL qui permet de stocker tout type de données
+    
+    La base de données Authentication est utilisée dans ce projet pour gérer les utilisateurs. l'UID généré par Firebase
+    dans cette BDD est ensuite lié par l'application (pas de lien entre les BDD) à la base de données Firestore, qui est
+    utilisée pour gérer les informations supplémentaires des utilisateurs ainsi que leur portfolio.
+    La BDD Firestore stocke aussi l'historique de chaque action pour permettre un affichage rapide
+    mais pas toujours à jour du cours de l'action. Cela permet de minimiser les requêtes à l'API, limitées à 5 par minute
+end note
+
+package "Authentication Database" as authDB {
+    entity "Authentication User" as authUser  {
+        identifiant
+        --
+        fournisseurs
+        date de création
+        dernière connexion
+        UID utilisateur
+    }
+
+    note right of authUser
+        <b>Authentication User
+        Utilisateurs et authentification
+        gérés automatiquement par Firebase
+        Ne peut pas être modifiée
+    end note
+
+    note left of authUser::identifiant
+        adresse email
+    end note
+
+    note left of authUser::fournisseurs
+        type de connexion, ici email
+    end note
+}
+
+package "Firestore Database" as firestoreDB {
+    entity "Firestore User" as dbUser {
+        UID utilisateur
+        --
+        name
+        transactions
+    }
+
+    note right of dbUser
+        <b>Firestore User
+        Utilisateurs dans la base de données Firestore
+        Représente un utilisateur et son portfolio d'actions
+        (sous forme de transactions)
+    end note
+
+    note left of dbUser::UID
+        référence à l'UID utilisateur
+        de la base de données Authentication
+        gérée dans le code
+        (base de données indépendantes dans Firebase)
+    end note
+
+    note left of dbUser::name
+        nom du compte utilisateur
+    end note
+
+    note left of dbUser::transactions
+        liste de transactions effectuées (User Transactions)
+    end note
+
+    entity "User Transaction" as userTransaction {
+        transactionID
+        --
+        UID utilisateur
+        ticker
+        amount
+        price
+    }
+
+    note right of userTransaction
+        <b>User Transaction
+        Transaction effectuée par un utilisateur
+        L'ID de la transaction n'est pas très important,
+        il sert de clé primaire ici mais en pratique,
+        toutes les transactions liées à un utilisateur sont
+        récupérées (pas seulement une transaction)
+    end note
+
+    note left of userTransaction::UID
+        identifiant unique de l'utilisateur effectuant la transaction
+    end note
+
+    note left of userTransaction::ticker
+        identifiant unique de l'action en bourse
+    end note
+
+    note left of userTransaction::amount
+        quantité d'actions achetées / vendues
+    end note
+
+    note left of userTransaction::price
+        prix d'achat / de vente de l'action
+    end note
+
+    entity "Stock" as stock {
+        ticker
+        --
+        marketcap
+        lastupdated
+        closeprice
+    }
+
+    note right of stock
+        <b>Stock
+        Cours d'une action stocké dans la base de données
+        Comme seules 5 req./min. sont possibles avec l'API,
+        il est nécessaire de garder un historique de chaque
+        action visitée récemment. 
+    end note
+
+    note left of stock::ticker
+        identifiant unique de l'action en bourse
+    end note
+
+    note left of stock::marketcap
+        capitalisation boursière totale de l'entreprise
+    end note
+
+    note left of stock::lastupdated
+        dernière mise à jour des prix (Unix timestamp),
+        permet de savoir si une mise à jour est requise
+    end note
+
+    note left of stock::closeprice
+        liste des prix de fermeture de l'action chaque jour,
+        permet de reconstituer un graphique et
+        des statistiques sans envoyer de requête à l'API
+    end note
+}
+
+authUser ||--|| dbUser
+dbUser ||--o{ userTransaction
+userTransaction }o--|| stock
+
+note1 -[hidden]- authDB
+note1 -[hidden]- authUser
+
+@enduml

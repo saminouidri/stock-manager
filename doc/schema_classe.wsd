@@ -1,0 +1,123 @@
+@startuml "class Diagram"
+' Views
+
+class PortfolioView <StatefulWidget> {
+    - userRepository : UserRepository
+    - transactionRepository : TransactionRepository
+
+    - transactions : UserTransaction
+    - PFStats : Statistics
+}
+
+class TradeView <StatefulWidget>{
+    - userRepository : UserRepository
+    - stockRepository : StockRepository
+    - transactionRepository : TransactionRepository
+
+    - stocks: Stock
+    - transactions : UserTransaction
+}
+
+' Helper
+class StockStatistics {
+  + stockTicker: String
+  + price : Double
+  + marketCap : Double
+  + oneDayChange : Double
+  + sevenDayChange : Double
+  + oneMonthChange : Double
+  + threeMonthChange : Double
+  + oneYearChange : Double
+  + stockVolume : Double
+
+  + graphData : Map<int,double>
+
+  _computeValues() : void
+}
+
+class PortfolioStatistics {
+  + userID : String
+  + lastValuation : Double
+  + oneDayChange : Double
+  + sevenDayChange : Double
+  + oneMonthChange : Double
+  + threeMonthChange : Double
+  + oneYearChange : Double
+
+  + graphData : Map<String,Double>
+  + totalStockQuantity : Map<String,Double>
+  + totalStockValue : Map<String,Double>
+  + changeSinceBuy : Map<String,Double>
+
+  + _computeValues() : void
+}
+
+' Model
+class FirebaseUser{
+    + uid : string
+    + name : string
+}
+
+class UserTransaction {
+    + userID : string
+    + ticker : String 
+    + amount : Double 
+    + price : Double
+    + Stats : Statistics
+}
+
+class Stock {
+    + ticker: String
+    + closePrice : Array
+    + lastUpdated : int
+    + marketprice : int
+    + StockStats : Statistics
+}
+
+' Datas
+class StockRepository <<singleton>>{
+    + rateLimit : const
+    + API : string
+    + get() : Stock 
+}
+
+class TransactionRepository <<singleton>>{
+    + get() : UserTransaction
+    + save() : void
+}
+
+class UserRepository <<singleton>>{
+    + get() : User
+    + save() : void
+    + remove() : void
+}
+
+
+' Views
+TradeView "1" o--up  "1" UserRepository
+TradeView "1" o--up  "1" TransactionRepository
+TradeView "1" o--up  "1" StockRepository
+
+TradeView "1" *-- "0*" Stock
+TradeView "1" *-- "0*" UserTransaction
+
+PortfolioView "1" o--up "1" UserRepository
+PortfolioView "1" o--up  "1" TransactionRepository
+PortfolioView "1" o--up  "1" StockRepository
+
+PortfolioView "1" *-- "0*" PortfolioStatistics
+PortfolioView "1" *-- "0*" UserTransaction
+
+
+' Models
+FirebaseUser"1" --* "0*" UserTransaction
+Stock "1" *-- "0*" StockStatistics
+
+note left of UserTransaction
+
+    Les liaisons entre les différentes classes (PortfolioView, TradeView),
+    utilise le même type d'objet `UserTransaction`. Mais les instances des objets sont différents.
+
+end note
+
+@enduml
